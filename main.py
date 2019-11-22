@@ -1,6 +1,7 @@
 import json
 import random
 from google.cloud import storage
+import xmltodict 
 
 storage_client = storage.Client()
 TICKETS_BUCKET = 'kizee'
@@ -8,25 +9,37 @@ TICKETS_BUCKET = 'kizee'
 def raise_ticket(request):
     content_type = request.headers['content-type'] 
     
-    if content_type == 'application/json':
-        name = request.json.get('name')
-        issue = request.json.get('issue')
-    elif content_type == 'application/octet-stream':
-        temp_data = request.data.decode("utf-8")
-        words = temp_data.split()
-        name = words[words.index('name:') + 1]
-        issue = temp_data.split("issue", 1) [1]
-    elif content_type == 'text/plain' :
-        temp_data = request.data.decode('utf-8')
-        words =temp_data.split()
-        name = words[words.index('name:') + 1]
-        issue = temp_data.split("issue:", 1)[1]
-    elif content_type == 'application/x-www-form-urlencoded':
-        name = requests.form.get('name')
-        issue = requests.form.get('issue')
+    if request.method == 'GET':
+        name = request.args.get('name')
+        issue = request.args.get('issue')
+    elif request.method == 'PUT': 
+    
+        if content_type == 'application/json':
+            name = request.json.get('name')
+            issue = request.json.get('issue')
+        elif content_type == 'application/octet-stream':
+            temp_data = request.data.decode("utf-8")
+            words = temp_data.split()
+            name = words[words.index('name:') + 1]
+            issue = temp_data.split("issue", 1) [1]
+        elif content_type == 'text/plain' :
+            temp_data = request.data.decode('utf-8')
+            words =temp_data.split()
+            name = words[words.index('name:') + 1]
+            issue = temp_data.split("issue:", 1)[1]
+        elif content_type == 'application/x-www-form-urlencoded':
+            name = requests.form.get('name')
+            issue = requests.form.get('issue')
+        elif content_type == 'text/xml':
+            temp_data = xmltodict.parse(request.data)
+            name = temp_data['ticketraiser']['@name']
+            issue = temp_data['ticketraiser']['issue']
         
-    else:
-        raise ValueError ("unknown content type {}" . format(content_type))
+        
+        else:
+            raise ValueError ("unknown content type {}" . format(content_type))
+    else :
+        return abort(405) 
         
         
     id = random.randint(1000,2000)
@@ -45,4 +58,7 @@ def raise_ticket(request):
         
     blob.upload_from_filename('/tmp/tickets.json')
     return 'Tickets generated with id, {}'.format(id)
+        
+        
+   
         
